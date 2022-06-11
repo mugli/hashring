@@ -2,18 +2,10 @@ package hashring
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func expectWeights(t *testing.T, ring *HashRing, expectedWeights map[string]int) {
-	weightsEquality := reflect.DeepEqual(ring.weights, expectedWeights)
-	if !weightsEquality {
-		t.Error("Weights expected", expectedWeights, "but got", ring.weights)
-	}
-}
 
 type testPair struct {
 	key  string
@@ -160,29 +152,6 @@ func TestNewSingle(t *testing.T) {
 	})
 }
 
-func TestNewWeighted(t *testing.T) {
-	weights := make(map[string]int)
-	weights["a"] = 1
-	weights["b"] = 2
-	weights["c"] = 1
-	ring := NewWithWeights(weights)
-
-	assertNodes(t, "", ring, []testPair{
-		{"test", "b"},
-		{"test", "b"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "b"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "b"},
-	})
-	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"b", "a"}},
-	})
-}
-
 func TestRemoveNode(t *testing.T) {
 	nodes := []string{"a", "b", "c"}
 	ring := New(nodes)
@@ -211,13 +180,6 @@ func TestAddNode(t *testing.T) {
 	ring = ring.AddNode("b")
 
 	expectNodesABC(t, "TestAddNode_1_", ring)
-
-	defaultWeights := map[string]int{
-		"a": 1,
-		"b": 1,
-		"c": 1,
-	}
-	expectWeights(t, ring, defaultWeights)
 }
 
 func TestAddNode2(t *testing.T) {
@@ -291,56 +253,6 @@ func TestDuplicateNodes(t *testing.T) {
 	})
 }
 
-func TestAddWeightedNode(t *testing.T) {
-	nodes := []string{"a", "c"}
-	ring := New(nodes)
-	ring = ring.AddWeightedNode("b", 0)
-	ring = ring.AddWeightedNode("b", 2)
-	ring = ring.AddWeightedNode("b", 2)
-
-	assertNodes(t, "TestAddWeightedNode_", ring, []testPair{
-		{"test", "b"},
-		{"test", "b"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "b"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "b"},
-	})
-
-	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"b", "a"}},
-	})
-}
-
-func TestUpdateWeightedNode(t *testing.T) {
-	nodes := []string{"a", "c"}
-	ring := New(nodes)
-	ring = ring.AddWeightedNode("b", 1)
-	ring = ring.UpdateWeightedNode("b", 2)
-	ring = ring.UpdateWeightedNode("b", 2)
-	ring = ring.UpdateWeightedNode("b", 0)
-	ring = ring.UpdateWeightedNode("d", 2)
-
-	assertNodes(t, "TestUpdateWeightedNode_", ring, []testPair{
-		{"test", "b"},
-		{"test", "b"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "b"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "b"},
-	})
-
-	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"b", "a"}},
-	})
-}
-
 func TestRemoveAddNode(t *testing.T) {
 	nodes := []string{"a", "b", "c"}
 	ring := New(nodes)
@@ -378,69 +290,6 @@ func TestRemoveAddNode(t *testing.T) {
 
 	expectNodesABC(t, "5_", ring)
 	expectNodeRangesABC(t, "6_", ring)
-}
-
-func TestRemoveAddWeightedNode(t *testing.T) {
-	weights := make(map[string]int)
-	weights["a"] = 1
-	weights["b"] = 2
-	weights["c"] = 1
-	ring := NewWithWeights(weights)
-
-	expectWeights(t, ring, weights)
-
-	assertNodes(t, "1_", ring, []testPair{
-		{"test", "b"},
-		{"test", "b"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "b"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "b"},
-	})
-
-	assert2Nodes(t, "2_", ring, []testNodes{
-		{"test", []string{"b", "a"}},
-		{"test", []string{"b", "a"}},
-		{"test1", []string{"b", "a"}},
-		{"test2", []string{"b", "a"}},
-		{"test3", []string{"c", "b"}},
-		{"test4", []string{"b", "a"}},
-		{"test5", []string{"c", "b"}},
-		{"aaaa", []string{"c", "b"}},
-		{"bbbb", []string{"b", "a"}},
-	})
-
-	ring = ring.RemoveNode("c")
-
-	delete(weights, "c")
-	expectWeights(t, ring, weights)
-
-	assertNodes(t, "3_", ring, []testPair{
-		{"test", "b"},
-		{"test", "b"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "b"},
-		{"test4", "b"},
-		{"test5", "b"},
-		{"aaaa", "b"},
-		{"bbbb", "b"},
-	})
-
-	assert2Nodes(t, "4_", ring, []testNodes{
-		{"test", []string{"b", "a"}},
-		{"test", []string{"b", "a"}},
-		{"test1", []string{"b", "a"}},
-		{"test2", []string{"b", "a"}},
-		{"test3", []string{"b", "a"}},
-		{"test4", []string{"b", "a"}},
-		{"test5", []string{"b", "a"}},
-		{"aaaa", []string{"b", "a"}},
-		{"bbbb", []string{"b", "a"}},
-	})
 }
 
 func TestAddRemoveNode(t *testing.T) {

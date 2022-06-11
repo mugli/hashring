@@ -5,7 +5,7 @@ vet:
 	go vet ./...
 
 test: fmt vet
-	go test -v ./... -coverprofile cover.out
+	go test ./... -coverprofile cover.out
 
 coverage: test
 	go tool cover -html=cover.out

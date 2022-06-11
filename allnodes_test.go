@@ -9,14 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func generateWeights(n int) map[string]int {
-	result := make(map[string]int)
-	for i := 0; i < n; i++ {
-		result[fmt.Sprintf("%03d", i)] = i + 1
-	}
-	return result
-}
-
 func generateNodes(n int) []string {
 	result := make([]string, 0, n)
 	for i := 0; i < n; i++ {
@@ -29,8 +21,7 @@ func TestListOf1000Nodes(t *testing.T) {
 	testData := map[string]struct {
 		ring *HashRing
 	}{
-		"nodes":   {ring: New(generateNodes(1000))},
-		"weights": {ring: NewWithWeights(generateWeights(1000))},
+		"nodes": {ring: New(generateNodes(1000))},
 	}
 
 	for testName, data := range testData {

@@ -44,7 +44,7 @@ func (r *HashSum) Use(
 }
 
 // NewHash creates a new *HashSum object which can be used to create HashFunc.
-// HashFunc object is thread safe if the hasher argument produces a new hash.Hash 
+// HashFunc object is thread safe if the hasher argument produces a new hash.Hash
 // each time. The produced hash.Hash is allowed to be non thread-safe.
 func NewHash(hasher func() hash.Hash) *HashSum {
 	return &HashSum{

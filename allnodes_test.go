@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func generateNodes(n int) []string {
-	result := make([]string, 0, n)
+func generateNodes(n int) []Node {
+	result := make([]Node, 0, n)
 	for i := 0; i < n; i++ {
-		result = append(result, fmt.Sprintf("%03d", i))
+		result = append(result, myNode(fmt.Sprintf("%03d", i)))
 	}
 	return result
 }
@@ -31,15 +31,19 @@ func TestListOf1000Nodes(t *testing.T) {
 			assert.True(t, ok)
 			if !assert.Equal(t, ring.Size(), len(nodes)) {
 				// print debug info on failure
-				sort.Strings(nodes)
+				sort.SliceStable(nodes, func(i, j int) bool {
+					return nodes[i].String() < nodes[j].String()
+				})
 				fmt.Printf("%v\n", nodes)
 				return
 			}
 
 			// assert that each node shows up exatly once
-			sort.Strings(nodes)
+			sort.SliceStable(nodes, func(i, j int) bool {
+				return nodes[i].String() < nodes[j].String()
+			})
 			for i, node := range nodes {
-				actual, err := strconv.ParseInt(node, 10, 64)
+				actual, err := strconv.ParseInt(node.String(), 10, 64)
 				if !assert.NoError(t, err) {
 					return
 				}

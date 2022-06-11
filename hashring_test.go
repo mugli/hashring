@@ -7,14 +7,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type myNode string
+
+func (m myNode) String() string {
+	return string(m)
+}
+
+func stringSliceToNodeSlice(names []string) []Node {
+	ret := make([]Node, 0, len(names))
+	for _, name := range names {
+		ret = append(ret, myNode(name))
+	}
+
+	return ret
+}
+
 type testPair struct {
 	key  string
-	node string
+	node Node
 }
 
 type testNodes struct {
 	key   string
-	nodes []string
+	nodes []Node
 }
 
 func assert2Nodes(t *testing.T, prefix string, ring *HashRing, data []testNodes) {
@@ -47,48 +62,48 @@ func assertNodes(t *testing.T, prefix string, ring *HashRing, allExpected []test
 func expectNodesABC(t *testing.T, prefix string, ring *HashRing) {
 
 	assertNodes(t, prefix, ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "a"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "a"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("b")},
+		{"test2", myNode("b")},
+		{"test3", myNode("c")},
+		{"test4", myNode("a")},
+		{"test5", myNode("c")},
+		{"aaaa", myNode("c")},
+		{"bbbb", myNode("a")},
 	})
 }
 
 func expectNodeRangesABC(t *testing.T, prefix string, ring *HashRing) {
 	assert2Nodes(t, prefix, ring, []testNodes{
-		{"test", []string{"a", "c"}},
-		{"test", []string{"a", "c"}},
-		{"test1", []string{"b", "a"}},
-		{"test2", []string{"b", "a"}},
-		{"test3", []string{"c", "b"}},
-		{"test4", []string{"a", "c"}},
-		{"test5", []string{"c", "b"}},
-		{"aaaa", []string{"c", "b"}},
-		{"bbbb", []string{"a", "c"}},
+		{"test", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test1", stringSliceToNodeSlice([]string{"b", "a"})},
+		{"test2", stringSliceToNodeSlice([]string{"b", "a"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"test4", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"a", "c"})},
 	})
 }
 
 func expectNodesABCD(t *testing.T, prefix string, ring *HashRing) {
 	assertNodes(t, prefix, ring, []testPair{
-		{"test", "d"},
-		{"test", "d"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "d"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "d"},
+		{"test", myNode("d")},
+		{"test", myNode("d")},
+		{"test1", myNode("b")},
+		{"test2", myNode("b")},
+		{"test3", myNode("c")},
+		{"test4", myNode("d")},
+		{"test5", myNode("c")},
+		{"aaaa", myNode("c")},
+		{"bbbb", myNode("d")},
 	})
 }
 
 func TestNew(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
 
 	expectNodesABC(t, "TestNew_1_", ring)
@@ -96,11 +111,11 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewEmpty(t *testing.T) {
-	nodes := []string{}
+	nodes := stringSliceToNodeSlice([]string{})
 	ring := New(nodes)
 
 	node, ok := ring.GetNode("test")
-	if ok || node != "" {
+	if ok || node != nil {
 		t.Error("GetNode(test) expected (\"\", false) but got (", node, ",", ok, ")")
 	}
 
@@ -111,17 +126,17 @@ func TestNewEmpty(t *testing.T) {
 }
 
 func TestForMoreNodes(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
 
 	nodes, ok := ring.GetNodes("test", 5)
-	if ok || !(len(nodes) == 0) {
+	if ok || nodes != nil {
 		t.Error("GetNode(test) expected ( [], false ) but got (", nodes, ",", ok, ")")
 	}
 }
 
 func TestForEqualNodes(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
 
 	nodes, ok := ring.GetNodes("test", 3)
@@ -131,281 +146,281 @@ func TestForEqualNodes(t *testing.T) {
 }
 
 func TestNewSingle(t *testing.T) {
-	nodes := []string{"a"}
+	nodes := stringSliceToNodeSlice([]string{"a"})
 	ring := New(nodes)
 
 	assertNodes(t, "", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "a"},
-		{"test2", "a"},
-		{"test3", "a"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("a")},
+		{"test2", myNode("a")},
+		{"test3", myNode("a")},
 
-		{"test14", "a"},
+		{"test14", myNode("a")},
 
-		{"test15", "a"},
-		{"test16", "a"},
-		{"test17", "a"},
-		{"test18", "a"},
-		{"test19", "a"},
-		{"test20", "a"},
+		{"test15", myNode("a")},
+		{"test16", myNode("a")},
+		{"test17", myNode("a")},
+		{"test18", myNode("a")},
+		{"test19", myNode("a")},
+		{"test20", myNode("a")},
 	})
 }
 
 func TestRemoveNode(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
-	ring = ring.RemoveNode("b")
+	ring = ring.RemoveNode(myNode("b"))
 
 	assertNodes(t, "", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "a"},
-		{"test2", "a"},
-		{"test3", "c"},
-		{"test4", "a"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "a"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("a")},
+		{"test2", myNode("a")},
+		{"test3", myNode("c")},
+		{"test4", myNode("a")},
+		{"test5", myNode("c")},
+		{"aaaa", myNode("c")},
+		{"bbbb", myNode("a")},
 	})
 
 	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"a", "c"}},
+		{"test", stringSliceToNodeSlice([]string{"a", "c"})},
 	})
 }
 
 func TestAddNode(t *testing.T) {
-	nodes := []string{"a", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "c"})
 	ring := New(nodes)
-	ring = ring.AddNode("b")
+	ring = ring.AddNode(myNode("b"))
 
 	expectNodesABC(t, "TestAddNode_1_", ring)
 }
 
 func TestAddNode2(t *testing.T) {
-	nodes := []string{"a", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "c"})
 	ring := New(nodes)
-	ring = ring.AddNode("b")
-	ring = ring.AddNode("b")
+	ring = ring.AddNode(myNode("b"))
+	ring = ring.AddNode(myNode("b"))
 
 	expectNodesABC(t, "TestAddNode2_", ring)
 	expectNodeRangesABC(t, "", ring)
 }
 
 func TestAddNode3(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
-	ring = ring.AddNode("d")
+	ring = ring.AddNode(myNode("d"))
 
 	expectNodesABCD(t, "TestAddNode3_1_", ring)
 
-	ring = ring.AddNode("e")
+	ring = ring.AddNode(myNode("e"))
 
 	assertNodes(t, "TestAddNode3_2_", ring, []testPair{
-		{"test", "d"},
-		{"test", "d"},
-		{"test1", "b"},
-		{"test2", "e"},
-		{"test3", "c"},
-		{"test4", "d"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "d"},
+		{"test", myNode("d")},
+		{"test", myNode("d")},
+		{"test1", myNode("b")},
+		{"test2", myNode("e")},
+		{"test3", myNode("c")},
+		{"test4", myNode("d")},
+		{"test5", myNode("c")},
+		{"aaaa", myNode("c")},
+		{"bbbb", myNode("d")},
 	})
 
 	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 
-	ring = ring.AddNode("f")
+	ring = ring.AddNode(myNode("f"))
 
 	assertNodes(t, "TestAddNode3_3_", ring, []testPair{
-		{"test", "d"},
-		{"test", "d"},
-		{"test1", "b"},
-		{"test2", "e"},
-		{"test3", "c"},
-		{"test4", "d"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "d"},
+		{"test", myNode("d")},
+		{"test", myNode("d")},
+		{"test1", myNode("b")},
+		{"test2", myNode("e")},
+		{"test3", myNode("c")},
+		{"test4", myNode("d")},
+		{"test5", myNode("c")},
+		{"aaaa", myNode("c")},
+		{"bbbb", myNode("d")},
 	})
 
 	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 }
 
 func TestDuplicateNodes(t *testing.T) {
-	nodes := []string{"a", "a", "a", "a", "b"}
+	nodes := stringSliceToNodeSlice([]string{"a", "a", "a", "a", "b"})
 	ring := New(nodes)
 
 	assertNodes(t, "TestDuplicateNodes_", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "b"},
-		{"test4", "a"},
-		{"test5", "b"},
-		{"aaaa", "b"},
-		{"bbbb", "a"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("b")},
+		{"test2", myNode("b")},
+		{"test3", myNode("b")},
+		{"test4", myNode("a")},
+		{"test5", myNode("b")},
+		{"aaaa", myNode("b")},
+		{"bbbb", myNode("a")},
 	})
 }
 
 func TestRemoveAddNode(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
 
 	expectNodesABC(t, "1_", ring)
 	expectNodeRangesABC(t, "2_", ring)
 
-	ring = ring.RemoveNode("b")
+	ring = ring.RemoveNode(myNode("b"))
 
 	assertNodes(t, "3_", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "a"},
-		{"test2", "a"},
-		{"test3", "c"},
-		{"test4", "a"},
-		{"test5", "c"},
-		{"aaaa", "c"},
-		{"bbbb", "a"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("a")},
+		{"test2", myNode("a")},
+		{"test3", myNode("c")},
+		{"test4", myNode("a")},
+		{"test5", myNode("c")},
+		{"aaaa", myNode("c")},
+		{"bbbb", myNode("a")},
 	})
 
 	assert2Nodes(t, "4_", ring, []testNodes{
-		{"test", []string{"a", "c"}},
-		{"test", []string{"a", "c"}},
-		{"test1", []string{"a", "c"}},
-		{"test2", []string{"a", "c"}},
-		{"test3", []string{"c", "a"}},
-		{"test4", []string{"a", "c"}},
-		{"test5", []string{"c", "a"}},
-		{"aaaa", []string{"c", "a"}},
-		{"bbbb", []string{"a", "c"}},
+		{"test", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test1", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test2", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "a"})},
+		{"test4", stringSliceToNodeSlice([]string{"a", "c"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "a"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "a"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"a", "c"})},
 	})
 
-	ring = ring.AddNode("b")
+	ring = ring.AddNode(myNode("b"))
 
 	expectNodesABC(t, "5_", ring)
 	expectNodeRangesABC(t, "6_", ring)
 }
 
 func TestAddRemoveNode(t *testing.T) {
-	nodes := []string{"a", "b", "c"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
-	ring = ring.AddNode("d")
+	ring = ring.AddNode(myNode("d"))
 
 	expectNodesABCD(t, "1_", ring)
 
 	assert2Nodes(t, "2_", ring, []testNodes{
-		{"test", []string{"d", "a"}},
-		{"test", []string{"d", "a"}},
-		{"test1", []string{"b", "d"}},
-		{"test2", []string{"b", "d"}},
-		{"test3", []string{"c", "b"}},
-		{"test4", []string{"d", "a"}},
-		{"test5", []string{"c", "b"}},
-		{"aaaa", []string{"c", "b"}},
-		{"bbbb", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test1", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test2", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"test4", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 
-	ring = ring.AddNode("e")
+	ring = ring.AddNode(myNode("e"))
 
 	assertNodes(t, "3_", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "b"},
-		{"test2", "b"},
-		{"test3", "c"},
-		{"test4", "c"},
-		{"test5", "a"},
-		{"aaaa", "b"},
-		{"bbbb", "e"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("b")},
+		{"test2", myNode("b")},
+		{"test3", myNode("c")},
+		{"test4", myNode("c")},
+		{"test5", myNode("a")},
+		{"aaaa", myNode("b")},
+		{"bbbb", myNode("e")},
 	})
 
 	assert2Nodes(t, "4_", ring, []testNodes{
-		{"test", []string{"d", "a"}},
-		{"test", []string{"d", "a"}},
-		{"test1", []string{"b", "d"}},
-		{"test2", []string{"e", "b"}},
-		{"test3", []string{"c", "e"}},
-		{"test4", []string{"d", "a"}},
-		{"test5", []string{"c", "e"}},
-		{"aaaa", []string{"c", "e"}},
-		{"bbbb", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test1", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test2", stringSliceToNodeSlice([]string{"e", "b"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "e"})},
+		{"test4", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "e"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "e"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 
-	ring = ring.AddNode("f")
+	ring = ring.AddNode(myNode("f"))
 
 	assertNodes(t, "5_", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "b"},
-		{"test2", "f"},
-		{"test3", "f"},
-		{"test4", "c"},
-		{"test5", "f"},
-		{"aaaa", "b"},
-		{"bbbb", "e"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("b")},
+		{"test2", myNode("f")},
+		{"test3", myNode("f")},
+		{"test4", myNode("c")},
+		{"test5", myNode("f")},
+		{"aaaa", myNode("b")},
+		{"bbbb", myNode("e")},
 	})
 
 	assert2Nodes(t, "6_", ring, []testNodes{
-		{"test", []string{"d", "a"}},
-		{"test", []string{"d", "a"}},
-		{"test1", []string{"b", "d"}},
-		{"test2", []string{"e", "f"}},
-		{"test3", []string{"c", "e"}},
-		{"test4", []string{"d", "a"}},
-		{"test5", []string{"c", "e"}},
-		{"aaaa", []string{"c", "e"}},
-		{"bbbb", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test1", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test2", stringSliceToNodeSlice([]string{"e", "f"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "e"})},
+		{"test4", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "e"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "e"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 
-	ring = ring.RemoveNode("e")
+	ring = ring.RemoveNode(myNode("e"))
 
 	assertNodes(t, "7_", ring, []testPair{
-		{"test", "a"},
-		{"test", "a"},
-		{"test1", "b"},
-		{"test2", "f"},
-		{"test3", "f"},
-		{"test4", "c"},
-		{"test5", "f"},
-		{"aaaa", "b"},
-		{"bbbb", "f"},
+		{"test", myNode("a")},
+		{"test", myNode("a")},
+		{"test1", myNode("b")},
+		{"test2", myNode("f")},
+		{"test3", myNode("f")},
+		{"test4", myNode("c")},
+		{"test5", myNode("f")},
+		{"aaaa", myNode("b")},
+		{"bbbb", myNode("f")},
 	})
 
 	assert2Nodes(t, "8_", ring, []testNodes{
-		{"test", []string{"d", "a"}},
-		{"test", []string{"d", "a"}},
-		{"test1", []string{"b", "d"}},
-		{"test2", []string{"f", "b"}},
-		{"test3", []string{"c", "f"}},
-		{"test4", []string{"d", "a"}},
-		{"test5", []string{"c", "f"}},
-		{"aaaa", []string{"c", "f"}},
-		{"bbbb", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test1", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test2", stringSliceToNodeSlice([]string{"f", "b"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "f"})},
+		{"test4", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "f"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "f"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 
-	ring = ring.RemoveNode("f")
+	ring = ring.RemoveNode(myNode("f"))
 
 	expectNodesABCD(t, "TestAddRemoveNode_5_", ring)
 
 	assert2Nodes(t, "", ring, []testNodes{
-		{"test", []string{"d", "a"}},
-		{"test", []string{"d", "a"}},
-		{"test1", []string{"b", "d"}},
-		{"test2", []string{"b", "d"}},
-		{"test3", []string{"c", "b"}},
-		{"test4", []string{"d", "a"}},
-		{"test5", []string{"c", "b"}},
-		{"aaaa", []string{"c", "b"}},
-		{"bbbb", []string{"d", "a"}},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test1", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test2", stringSliceToNodeSlice([]string{"b", "d"})},
+		{"test3", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"test4", stringSliceToNodeSlice([]string{"d", "a"})},
+		{"test5", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"aaaa", stringSliceToNodeSlice([]string{"c", "b"})},
+		{"bbbb", stringSliceToNodeSlice([]string{"d", "a"})},
 	})
 
-	ring = ring.RemoveNode("d")
+	ring = ring.RemoveNode(myNode("d"))
 
 	expectNodesABC(t, "TestAddRemoveNode_6_", ring)
 	expectNodeRangesABC(t, "", ring)

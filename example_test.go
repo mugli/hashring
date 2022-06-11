@@ -6,7 +6,7 @@ import (
 )
 
 func ExampleNew() {
-	hashRing := New([]string{"node1", "node2", "node3"})
+	hashRing := New(stringSliceToNodeSlice([]string{"node1", "node2", "node3"}))
 	nodes, _ := hashRing.GetNodes("key", hashRing.Size())
 	fmt.Printf("%v", nodes)
 	// Output: [node3 node2 node1]
@@ -20,7 +20,7 @@ func ExampleNewHash_error() {
 
 func ExampleNewWithHash() {
 	hashFunc, _ := NewHash(sha1.New).FirstBytes(16).Use(NewInt64PairHashKey)
-	hashRing := NewWithHash([]string{"node1", "node2", "node3"}, hashFunc)
+	hashRing := NewWithHash(stringSliceToNodeSlice([]string{"node1", "node2", "node3"}), hashFunc)
 	nodes, _ := hashRing.GetNodes("key", hashRing.Size())
 	fmt.Printf("%v", nodes)
 	// Output: [node2 node1 node3]

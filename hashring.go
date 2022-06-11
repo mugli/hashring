@@ -14,6 +14,11 @@ var defaultHashFunc = func() HashFunc {
 	return hashFunc
 }()
 
+// Node interface represents a member in consistent hash ring.
+type Node interface {
+	String() string
+}
+
 type HashKey interface {
 	Less(other HashKey) bool
 }
@@ -28,28 +33,22 @@ func (h HashKeyOrder) Less(i, j int) bool {
 type HashFunc func([]byte) HashKey
 
 type HashRing struct {
-	ring       map[HashKey]string
+	ring       map[HashKey]Node
 	sortedKeys []HashKey
-	nodes      []string
+	nodes      []Node
 	hashFunc   HashFunc
 }
 
-type Uint32HashKey uint32
-
-func (k Uint32HashKey) Less(other HashKey) bool {
-	return k < other.(Uint32HashKey)
-}
-
-func New(nodes []string) *HashRing {
+func New(nodes []Node) *HashRing {
 	return NewWithHash(nodes, defaultHashFunc)
 }
 
 func NewWithHash(
-	nodes []string,
+	nodes []Node,
 	hashKey HashFunc,
 ) *HashRing {
 	hashRing := &HashRing{
-		ring:       make(map[HashKey]string),
+		ring:       make(map[HashKey]Node),
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		hashFunc:   hashKey,
@@ -64,7 +63,7 @@ func (h *HashRing) Size() int {
 
 func (h *HashRing) generateCircle() {
 	for _, node := range h.nodes {
-		nodeKey := node + "-0"
+		nodeKey := node.String() + "-0"
 		key := h.hashFunc([]byte(nodeKey))
 		h.ring[key] = node
 		h.sortedKeys = append(h.sortedKeys, key)
@@ -73,10 +72,10 @@ func (h *HashRing) generateCircle() {
 	sort.Sort(HashKeyOrder(h.sortedKeys))
 }
 
-func (h *HashRing) GetNode(stringKey string) (node string, ok bool) {
+func (h *HashRing) GetNode(stringKey string) (node Node, ok bool) {
 	pos, ok := h.GetNodePos(stringKey)
 	if !ok {
-		return "", false
+		return nil, false
 	}
 	return h.ring[h.sortedKeys[pos]], true
 }
@@ -106,7 +105,7 @@ func (h *HashRing) GenKey(key string) HashKey {
 // GetNodes iterates over the hash ring and returns the nodes in the order
 // which is determined by the key. GetNodes is thread safe if the hash
 // which was used to configure the hash ring is thread safe.
-func (h *HashRing) GetNodes(stringKey string, size int) (nodes []string, ok bool) {
+func (h *HashRing) GetNodes(stringKey string, size int) (nodes []Node, ok bool) {
 	pos, ok := h.GetNodePos(stringKey)
 	if !ok {
 		return nil, false
@@ -116,9 +115,9 @@ func (h *HashRing) GetNodes(stringKey string, size int) (nodes []string, ok bool
 		return nil, false
 	}
 
-	returnedValues := make(map[string]bool, size)
+	returnedValues := make(map[Node]bool, size)
 	//mergedSortedKeys := append(h.sortedKeys[pos:], h.sortedKeys[:pos]...)
-	resultSlice := make([]string, 0, size)
+	resultSlice := make([]Node, 0, size)
 
 	for i := pos; i < pos+len(h.sortedKeys); i++ {
 		key := h.sortedKeys[i%len(h.sortedKeys)]
@@ -135,22 +134,22 @@ func (h *HashRing) GetNodes(stringKey string, size int) (nodes []string, ok bool
 	return resultSlice, len(resultSlice) == size
 }
 
-func (h *HashRing) AddNode(node string) *HashRing {
+func (h *HashRing) AddNode(node Node) *HashRing {
 	return h.addNode(node)
 }
 
-func (h *HashRing) addNode(node string) *HashRing {
+func (h *HashRing) addNode(node Node) *HashRing {
 	// TODO: Check nodes array instead to see if the node is already present
 	// if _, ok := h.weights[node]; ok {
 	// 	return h
 	// }
 
-	nodes := make([]string, len(h.nodes), len(h.nodes)+1)
+	nodes := make([]Node, len(h.nodes), len(h.nodes)+1)
 	copy(nodes, h.nodes)
 	nodes = append(nodes, node)
 
 	hashRing := &HashRing{
-		ring:       make(map[HashKey]string),
+		ring:       make(map[HashKey]Node),
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		hashFunc:   h.hashFunc,
@@ -159,14 +158,14 @@ func (h *HashRing) addNode(node string) *HashRing {
 	return hashRing
 }
 
-func (h *HashRing) RemoveNode(node string) *HashRing {
+func (h *HashRing) RemoveNode(node Node) *HashRing {
 	/* if node isn't exist in hashring, don't refresh hashring */
 	// TODO: Check nodes array instead to see if the node is already present
 	// if _, ok := h.weights[node]; !ok {
 	// 	return h
 	// }
 
-	nodes := make([]string, 0)
+	nodes := make([]Node, 0)
 	for _, eNode := range h.nodes {
 		if eNode != node {
 			nodes = append(nodes, eNode)
@@ -174,7 +173,7 @@ func (h *HashRing) RemoveNode(node string) *HashRing {
 	}
 
 	hashRing := &HashRing{
-		ring:       make(map[HashKey]string),
+		ring:       make(map[HashKey]Node),
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		hashFunc:   h.hashFunc,

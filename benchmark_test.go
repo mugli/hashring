@@ -3,7 +3,7 @@ package hashring
 import "testing"
 
 func BenchmarkNew(b *testing.B) {
-	nodes := []string{"a", "b", "c", "d", "e", "f", "g"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c", "d", "e", "f", "g"})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = New(nodes)
@@ -11,7 +11,7 @@ func BenchmarkNew(b *testing.B) {
 }
 
 func BenchmarkHashes(b *testing.B) {
-	nodes := []string{"a", "b", "c", "d", "e", "f", "g"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c", "d", "e", "f", "g"})
 	ring := New(nodes)
 	tt := []struct {
 		key   string
@@ -35,7 +35,7 @@ func BenchmarkHashes(b *testing.B) {
 }
 
 func BenchmarkHashesSingle(b *testing.B) {
-	nodes := []string{"a", "b", "c", "d", "e", "f", "g"}
+	nodes := stringSliceToNodeSlice([]string{"a", "b", "c", "d", "e", "f", "g"})
 	ring := New(nodes)
 	tt := []struct {
 		key   string

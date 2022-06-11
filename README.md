@@ -4,10 +4,11 @@ This is a fork from https://github.com/serialx/hashring for a toy project I'm ex
 
 **Changes:**
 
-- Removed weight feature for the sake of simplicity
+- Removed weight feature for the sake of simplicity of the experiment
 - Used `hashring.Node` interface instead of `string` endpoints so that custom node types can be used
 - Used stable sorting now to avoid a potential bug (see https://github.com/serialx/hashring/issues/24)
-- It's a go module now
+- Used RWMutex to make Adding/Removing/Getting nodes concurrency safe (see https://github.com/serialx/hashring/issues/20)
+- It has a `go.mod` file now
 
 The original readme (with updated examples for custom Node type) goes below:
 
@@ -61,7 +62,7 @@ serversInRing := []Node{
 
 replicaCount := 3
 ring := hashring.New(serversInRing)
-server, _ := ring.GetNodes("my_key", replicaCount)
+server, _ := ring.GetNodesForReplicas("my_key", replicaCount)
 ```
 
 Adding and removing nodes example ::

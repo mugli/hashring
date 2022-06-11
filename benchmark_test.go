@@ -30,7 +30,7 @@ func BenchmarkHashes(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		o := tt[i%len(tt)]
-		ring.GetNodes(o.key, 2)
+		ring.GetNodesForReplicas(o.key, 2)
 	}
 }
 

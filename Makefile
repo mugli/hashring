@@ -9,3 +9,9 @@ test: fmt vet
 
 coverage: test
 	go tool cover -html=cover.out
+
+benchmark:
+	go test -bench=.
+
+race-detect: test
+	go test --race .

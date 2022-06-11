@@ -27,7 +27,7 @@ func TestListOf1000Nodes(t *testing.T) {
 	for testName, data := range testData {
 		ring := data.ring
 		t.Run(testName, func(t *testing.T) {
-			nodes, ok := ring.GetNodes("key", ring.Size())
+			nodes, ok := ring.GetNodesForReplicas("key", ring.Size())
 			assert.True(t, ok)
 			if !assert.Equal(t, ring.Size(), len(nodes)) {
 				// print debug info on failure

@@ -37,7 +37,7 @@ func assert2Nodes(t *testing.T, prefix string, ring *HashRing, data []testNodes)
 		allActual := make([]string, 0)
 		allExpected := make([]string, 0)
 		for _, pair := range data {
-			nodes, ok := ring.GetNodes(pair.key, 2)
+			nodes, ok := ring.GetNodesForReplicas(pair.key, 2)
 			if assert.True(t, ok) {
 				allActual = append(allActual, fmt.Sprintf("%s - %v", pair.key, nodes))
 				allExpected = append(allExpected, fmt.Sprintf("%s - %v", pair.key, pair.nodes))
@@ -110,6 +110,23 @@ func TestNew(t *testing.T) {
 	expectNodeRangesABC(t, "", ring)
 }
 
+func TestConcurrency(t *testing.T) {
+	hash := New(stringSliceToNodeSlice([]string{"a"}))
+	nodesToAdd := stringSliceToNodeSlice([]string{"Bill", "Bob", "Bonny", "Bob", "Bill", "Bony", "Bob"})
+	nodesToRemove := stringSliceToNodeSlice([]string{"Bill", "Bob", "Bonny", "Bob", "Bill", "Bony", "Bob"})
+	for _, node := range nodesToAdd {
+		go func(n Node) {
+			hash.AddNode(n)
+		}(node)
+	}
+
+	for _, node := range nodesToRemove {
+		go func(n Node) {
+			hash.RemoveNode(n)
+		}(node)
+	}
+}
+
 func TestNewEmpty(t *testing.T) {
 	nodes := stringSliceToNodeSlice([]string{})
 	ring := New(nodes)
@@ -119,7 +136,7 @@ func TestNewEmpty(t *testing.T) {
 		t.Error("GetNode(test) expected (\"\", false) but got (", node, ",", ok, ")")
 	}
 
-	nodes, rok := ring.GetNodes("test", 2)
+	nodes, rok := ring.GetNodesForReplicas("test", 2)
 	if rok || !(len(nodes) == 0) {
 		t.Error("GetNode(test) expected ( [], false ) but got (", nodes, ",", rok, ")")
 	}
@@ -129,7 +146,7 @@ func TestForMoreNodes(t *testing.T) {
 	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
 
-	nodes, ok := ring.GetNodes("test", 5)
+	nodes, ok := ring.GetNodesForReplicas("test", 5)
 	if ok || nodes != nil {
 		t.Error("GetNode(test) expected ( [], false ) but got (", nodes, ",", ok, ")")
 	}
@@ -139,7 +156,7 @@ func TestForEqualNodes(t *testing.T) {
 	nodes := stringSliceToNodeSlice([]string{"a", "b", "c"})
 	ring := New(nodes)
 
-	nodes, ok := ring.GetNodes("test", 3)
+	nodes, ok := ring.GetNodesForReplicas("test", 3)
 	if !ok && (len(nodes) == 3) {
 		t.Error("GetNode(test) expected ( [a b c], true ) but got (", nodes, ",", ok, ")")
 	}

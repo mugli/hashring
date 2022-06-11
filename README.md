@@ -6,6 +6,7 @@ This is a fork from https://github.com/serialx/hashring for a toy project I'm ex
 
 - Removed weight feature for the sake of simplicity
 - Used `hashring.Node` interface instead of `string` endpoints so that custom node types can be used
+- Used stable sorting now to avoid a potential bug (see https://github.com/serialx/hashring/issues/24)
 - It's a go module now
 
 The original readme (with updated examples for custom Node type) goes below:

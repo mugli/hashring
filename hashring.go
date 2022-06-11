@@ -6,52 +6,33 @@ import (
 	"sort"
 )
 
-var defaultHashFunc = func() HashFunc {
-	hashFunc, err := NewHash(md5.New).Use(NewInt64PairHashKey)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create defaultHashFunc: %s", err.Error()))
-	}
-	return hashFunc
-}()
-
 // Node interface represents a member in consistent hash ring.
 type Node interface {
 	String() string
 }
 
-type HashKey interface {
-	Less(other HashKey) bool
-}
-type HashKeyOrder []HashKey
-
-func (h HashKeyOrder) Len() int      { return len(h) }
-func (h HashKeyOrder) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-func (h HashKeyOrder) Less(i, j int) bool {
-	return h[i].Less(h[j])
-}
-
-type HashFunc func([]byte) HashKey
-
+// HashRing is a consistent hash ring
 type HashRing struct {
-	ring       map[HashKey]Node
+	// nodeHashMap is used to get a Node from its hashkey
+	nodeHashMap map[HashKey]Node
+	// sortedKeys stores all hashed and sorted values of nodes, and ultimately used as the hashring
 	sortedKeys []HashKey
-	nodes      []Node
-	hashFunc   HashFunc
+	// nodes are members in consistent hash ring. this slice is kept sorted to perform binary search.
+	nodes []Node
+	// hashFunc returns a comparable HashKey
+	hashFunc HashFunc
 }
 
 func New(nodes []Node) *HashRing {
 	return NewWithHash(nodes, defaultHashFunc)
 }
 
-func NewWithHash(
-	nodes []Node,
-	hashKey HashFunc,
-) *HashRing {
+func NewWithHash(nodes []Node, hashKey HashFunc) *HashRing {
 	hashRing := &HashRing{
-		ring:       make(map[HashKey]Node),
-		sortedKeys: make([]HashKey, 0),
-		nodes:      nodes,
-		hashFunc:   hashKey,
+		nodeHashMap: make(map[HashKey]Node),
+		sortedKeys:  make([]HashKey, 0),
+		nodes:       nodes,
+		hashFunc:    hashKey,
 	}
 	hashRing.generateCircle()
 	return hashRing
@@ -62,14 +43,22 @@ func (h *HashRing) Size() int {
 }
 
 func (h *HashRing) generateCircle() {
+	// generateCircle is called when nodes are added/removed/reset.
+	// keep the list sorted
+	sort.SliceStable(h.nodes, func(i, j int) bool {
+		return h.nodes[i].String() < h.nodes[j].String()
+	})
+
 	for _, node := range h.nodes {
-		nodeKey := node.String() + "-0"
-		key := h.hashFunc([]byte(nodeKey))
-		h.ring[key] = node
-		h.sortedKeys = append(h.sortedKeys, key)
+		nodeKey := node.String() + "-0" // "-0" is leftover from the weight feature that got removed. it's still here to make test assertions happy.
+		hashKey := h.hashFunc([]byte(nodeKey))
+		h.nodeHashMap[hashKey] = node
+		h.sortedKeys = append(h.sortedKeys, hashKey)
 	}
 
-	sort.Sort(HashKeyOrder(h.sortedKeys))
+	sort.SliceStable(h.sortedKeys, func(i, j int) bool {
+		return h.sortedKeys[i].Less(h.sortedKeys[j])
+	})
 }
 
 func (h *HashRing) GetNode(stringKey string) (node Node, ok bool) {
@@ -77,20 +66,20 @@ func (h *HashRing) GetNode(stringKey string) (node Node, ok bool) {
 	if !ok {
 		return nil, false
 	}
-	return h.ring[h.sortedKeys[pos]], true
+	return h.nodeHashMap[h.sortedKeys[pos]], true
 }
 
 func (h *HashRing) GetNodePos(stringKey string) (pos int, ok bool) {
-	if len(h.ring) == 0 {
+	if len(h.nodeHashMap) == 0 {
 		return 0, false
 	}
 
 	key := h.GenKey(stringKey)
 
-	nodes := h.sortedKeys
-	pos = sort.Search(len(nodes), func(i int) bool { return key.Less(nodes[i]) })
+	sortedKeys := h.sortedKeys
+	pos = sort.Search(len(sortedKeys), func(i int) bool { return key.Less(sortedKeys[i]) })
 
-	if pos == len(nodes) {
+	if pos == len(sortedKeys) {
 		// Wrap the search, should return First node
 		return 0, true
 	} else {
@@ -116,12 +105,11 @@ func (h *HashRing) GetNodes(stringKey string, size int) (nodes []Node, ok bool) 
 	}
 
 	returnedValues := make(map[Node]bool, size)
-	//mergedSortedKeys := append(h.sortedKeys[pos:], h.sortedKeys[:pos]...)
 	resultSlice := make([]Node, 0, size)
 
 	for i := pos; i < pos+len(h.sortedKeys); i++ {
 		key := h.sortedKeys[i%len(h.sortedKeys)]
-		val := h.ring[key]
+		val := h.nodeHashMap[key]
 		if !returnedValues[val] {
 			returnedValues[val] = true
 			resultSlice = append(resultSlice, val)
@@ -139,20 +127,21 @@ func (h *HashRing) AddNode(node Node) *HashRing {
 }
 
 func (h *HashRing) addNode(node Node) *HashRing {
-	// TODO: Check nodes array instead to see if the node is already present
-	// if _, ok := h.weights[node]; ok {
-	// 	return h
-	// }
+	pos := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].String() >= node.String() })
+	if pos < len(h.nodes) && h.nodes[pos].String() == node.String() {
+		// node is already present, just return
+		return h
+	}
 
 	nodes := make([]Node, len(h.nodes), len(h.nodes)+1)
 	copy(nodes, h.nodes)
 	nodes = append(nodes, node)
 
 	hashRing := &HashRing{
-		ring:       make(map[HashKey]Node),
-		sortedKeys: make([]HashKey, 0),
-		nodes:      nodes,
-		hashFunc:   h.hashFunc,
+		nodeHashMap: make(map[HashKey]Node),
+		sortedKeys:  make([]HashKey, 0),
+		nodes:       nodes,
+		hashFunc:    h.hashFunc,
 	}
 	hashRing.generateCircle()
 	return hashRing
@@ -160,10 +149,11 @@ func (h *HashRing) addNode(node Node) *HashRing {
 
 func (h *HashRing) RemoveNode(node Node) *HashRing {
 	/* if node isn't exist in hashring, don't refresh hashring */
-	// TODO: Check nodes array instead to see if the node is already present
-	// if _, ok := h.weights[node]; !ok {
-	// 	return h
-	// }
+	pos := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].String() >= node.String() })
+	if !(pos < len(h.nodes) && h.nodes[pos].String() == node.String()) {
+		// node is not present, just return
+		return h
+	}
 
 	nodes := make([]Node, 0)
 	for _, eNode := range h.nodes {
@@ -173,11 +163,25 @@ func (h *HashRing) RemoveNode(node Node) *HashRing {
 	}
 
 	hashRing := &HashRing{
-		ring:       make(map[HashKey]Node),
-		sortedKeys: make([]HashKey, 0),
-		nodes:      nodes,
-		hashFunc:   h.hashFunc,
+		nodeHashMap: make(map[HashKey]Node),
+		sortedKeys:  make([]HashKey, 0),
+		nodes:       nodes,
+		hashFunc:    h.hashFunc,
 	}
 	hashRing.generateCircle()
 	return hashRing
 }
+
+type HashKey interface {
+	Less(other HashKey) bool
+}
+
+type HashFunc func([]byte) HashKey
+
+var defaultHashFunc = func() HashFunc {
+	hashFunc, err := NewHash(md5.New).Use(NewInt64PairHashKey)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create defaultHashFunc: %s", err.Error()))
+	}
+	return hashFunc
+}()

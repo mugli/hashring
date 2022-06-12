@@ -72,14 +72,14 @@ func (h *HashRing) generateCircle() {
 
 // AddNode adds a node and generates a new hashring
 func (h *HashRing) AddNode(node Node) *HashRing {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	pos := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].String() >= node.String() })
 	if pos < len(h.nodes) && h.nodes[pos].String() == node.String() {
 		// node is already present, just return
 		return h
 	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
 
 	nodes := make([]Node, len(h.nodes), len(h.nodes)+1)
 	copy(nodes, h.nodes)
@@ -97,15 +97,15 @@ func (h *HashRing) AddNode(node Node) *HashRing {
 
 // AddNode removes a node and generates a new hashring
 func (h *HashRing) RemoveNode(node Node) *HashRing {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	/* if node isn't exist in hashring, don't refresh hashring */
 	pos := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].String() >= node.String() })
 	if !(pos < len(h.nodes) && h.nodes[pos].String() == node.String()) {
 		// node is not present, just return
 		return h
 	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
 
 	nodes := make([]Node, 0)
 	for _, eNode := range h.nodes {
